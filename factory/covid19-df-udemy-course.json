@@ -1,0 +1,9 @@
+{
+	"name": "covid19-df-udemy-course",
+	"location": "westus2",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "a3f5ae50-948a-4461-b685-9c80737017d8",
+		"tenantId": "b527c5db-f61a-4a8c-ba71-b91dfed56981"
+	}
+}
