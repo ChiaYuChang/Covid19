@@ -1,0 +1,26 @@
+{
+	"name": "ds_popultaion_raw_gz",
+	"properties": {
+		"description": "The file contains population data grouped by country and age.",
+		"linkedServiceName": {
+			"referenceName": "Covid19 Azure Blob Storage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "population_by_age.tsv.gz",
+				"container": "population"
+			},
+			"columnDelimiter": "\t",
+			"compressionCodec": "gzip",
+			"compressionLevel": "Optimal",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}
