@@ -1,0 +1,18 @@
+{
+	"name": "cedc_monk",
+	"properties": {
+		"parameters": {
+			"RESOURCE_PATH": {
+				"type": "String",
+				"defaultValue": "raw.githubusercontent.com/cloudboxacademy/covid19/main/ecdc_data/"
+			}
+		},
+		"annotations": [],
+		"type": "HttpServer",
+		"typeProperties": {
+			"url": "@{concat('https://', linkedService().RESOURCE_PATH, 'cases_deaths.csv')}",
+			"enableServerCertificateValidation": true,
+			"authenticationType": "Anonymous"
+		}
+	}
+}
