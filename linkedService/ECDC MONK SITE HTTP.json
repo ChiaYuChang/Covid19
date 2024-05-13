@@ -1,0 +1,22 @@
+{
+	"name": "ECDC MONK SITE HTTP",
+	"properties": {
+		"parameters": {
+			"HOST": {
+				"type": "string",
+				"defaultValue": "github.com"
+			},
+			"SCHEME": {
+				"type": "string",
+				"defaultValue": "https"
+			}
+		},
+		"annotations": [],
+		"type": "HttpServer",
+		"typeProperties": {
+			"url": "@{concat(linkedService().SCHEME, ':\\\\', linkedService().HOST)}",
+			"enableServerCertificateValidation": true,
+			"authenticationType": "Anonymous"
+		}
+	}
+}
