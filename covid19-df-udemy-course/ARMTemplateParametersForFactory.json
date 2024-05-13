@@ -1,0 +1,27 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"value": "covid19-df-udemy-course"
+		},
+		"Covid19 Azure Blob Storage_connectionString": {
+			"value": ""
+		},
+		"Covid19 Azure Data Lake_accountKey": {
+			"value": ""
+		},
+		"Covid19 Azure Data Lake_properties_typeProperties_url": {
+			"value": "https://covid19dludemycourse.dfs.core.windows.net/"
+		},
+		"trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE": {
+			"value": 10
+		},
+		"trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_COLUMN_COUNT": {
+			"value": 13
+		},
+		"trigger when file uploaded_properties_typeProperties_scope": {
+			"value": "/subscriptions/0c040362-4550-4be8-9248-64fbb2b1ba81/resourceGroups/Udemy-Azure_Data_Factory_Covid19/providers/Microsoft.Storage/storageAccounts/covid19saudemycourse"
+		}
+	}
+}
