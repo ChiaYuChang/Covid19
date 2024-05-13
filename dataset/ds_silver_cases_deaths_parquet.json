@@ -1,0 +1,21 @@
+{
+	"name": "ds_silver_cases_deaths_parquet",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Covid19 Azure Data Lake",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "cases_deaths",
+				"folderPath": "ecdc",
+				"fileSystem": "silver"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}

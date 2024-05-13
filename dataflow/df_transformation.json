@@ -1,0 +1,124 @@
+{
+	"name": "df_transformation",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_bronze_cases_death_csv",
+						"type": "DatasetReference"
+					},
+					"name": "CasesDeaths"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_bronze_country_code_loopup",
+						"type": "DatasetReference"
+					},
+					"name": "ContryCodeLookup"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_cases_deaths_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "CasesAndDeathSink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "FilterEUOnly",
+					"description": "filter Erurope data only"
+				},
+				{
+					"name": "SelectAndDrop"
+				},
+				{
+					"name": "PivotCount"
+				},
+				{
+					"name": "lookup1"
+				},
+				{
+					"name": "SelectAndRename"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          country as string,",
+				"          country_code as string,",
+				"          continent as string,",
+				"          population as integer,",
+				"          indicator as string,",
+				"          daily_count as integer,",
+				"          date as date,",
+				"          rate_14_day as double,",
+				"          source as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> CasesDeaths",
+				"source(output(",
+				"          country as string,",
+				"          country_code_2_digit as string,",
+				"          country_code_3_digit as string,",
+				"          continent as string,",
+				"          population as integer",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> ContryCodeLookup",
+				"CasesDeaths filter(and(continent == 'Europe', not(isNull(country_code)))) ~> FilterEUOnly",
+				"FilterEUOnly select(mapColumn(",
+				"          country,",
+				"          country_code,",
+				"          population,",
+				"          indicator,",
+				"          daily_count,",
+				"          source,",
+				"          each(match(name == 'date'),",
+				"               'reported_' + $$  = $$)",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectAndDrop",
+				"SelectAndDrop pivot(groupBy(country,",
+				"          country_code,",
+				"          population,",
+				"          source,",
+				"          reported_date),",
+				"     pivotBy(indicator, ['confirmed cases', 'deaths']),",
+				"     count = sum(daily_count),",
+				"     columnNaming: '$V_$N',",
+				"     lateral: true) ~> PivotCount",
+				"PivotCount, ContryCodeLookup lookup(PivotCount@country == ContryCodeLookup@country",
+				"     && country_code == country_code_3_digit,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> lookup1",
+				"lookup1 select(mapColumn(",
+				"          country = PivotCount@country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population = PivotCount@population,",
+				"          cases_count = {confirmed cases_count},",
+				"          deaths_count,",
+				"          reported_date,",
+				"          source",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectAndRename",
+				"SelectAndRename sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> CasesAndDeathSink"
+			]
+		}
+	}
+}
