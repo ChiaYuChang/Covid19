@@ -5,11 +5,18 @@
 			{
 				"name": "For All ECDC dataset",
 				"type": "ForEach",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "Lookup ECDC file name",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"userProperties": [],
 				"typeProperties": {
 					"items": {
-						"value": "@pipeline().parameters.FILE_NAME",
+						"value": "@activity('Lookup ECDC file name').output.value",
 						"type": "Expression"
 					},
 					"activities": [
@@ -63,7 +70,11 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"FILE_NAME": {
-											"value": "@concat(item(), '.csv')",
+											"value": "@concat(item().source_file, '.csv')",
+											"type": "Expression"
+										},
+										"PATH": {
+											"value": "@item().source_path",
 											"type": "Expression"
 										}
 									}
@@ -75,7 +86,11 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"FILE_NAME": {
-											"value": "@concat(item(), '.csv')",
+											"value": "@concat(item().sink_file, '.csv')",
+											"type": "Expression"
+										},
+										"PATH": {
+											"value": "@item().sink_path",
 											"type": "Expression"
 										}
 									}
@@ -84,19 +99,40 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "Lookup ECDC file name",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "JsonSource",
+						"storeSettings": {
+							"type": "AzureBlobStorageReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "JsonReadSettings"
+						}
+					},
+					"dataset": {
+						"referenceName": "conf_ecdc_file_name_json",
+						"type": "DatasetReference"
+					},
+					"firstRowOnly": false
+				}
 			}
 		],
 		"concurrency": 1,
-		"parameters": {
-			"FILE_NAME": {
-				"type": "array",
-				"defaultValue": [
-					"cases_deaths",
-					"country_response",
-					"hospital_admissions"
-				]
-			}
-		},
 		"annotations": []
 	}
 }

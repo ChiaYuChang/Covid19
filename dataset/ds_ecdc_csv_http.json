@@ -13,6 +13,10 @@
 			"FILE_NAME": {
 				"type": "string",
 				"defaultValue": "cases_deaths.csv"
+			},
+			"PATH": {
+				"type": "string",
+				"defaultValue": "cloudboxacademy/covid19/main/ecdc_data"
 			}
 		},
 		"annotations": [],
@@ -21,7 +25,7 @@
 			"location": {
 				"type": "HttpServerLocation",
 				"relativeUrl": {
-					"value": "@concat('cloudboxacademy/covid19/main/ecdc_data/', dataset().FILE_NAME)",
+					"value": "@concat(dataset().PATH, '/', dataset().FILE_NAME)",
 					"type": "Expression"
 				}
 			},

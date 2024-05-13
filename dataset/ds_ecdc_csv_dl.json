@@ -9,6 +9,10 @@
 			"FILE_NAME": {
 				"type": "string",
 				"defaultValue": "cases_deaths.csv"
+			},
+			"PATH": {
+				"type": "string",
+				"defaultValue": "ecdc"
 			}
 		},
 		"annotations": [],
@@ -20,7 +24,10 @@
 					"value": "@dataset().FILE_NAME",
 					"type": "Expression"
 				},
-				"folderPath": "ecdc",
+				"folderPath": {
+					"value": "@dataset().PATH",
+					"type": "Expression"
+				},
 				"fileSystem": "bronze"
 			},
 			"columnDelimiter": ",",

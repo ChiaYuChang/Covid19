@@ -1,0 +1,29 @@
+{
+	"name": "conf_ecdc_file_name_json",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Covid19 Azure Blob Storage",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "ecdc_file_name.json",
+				"container": "conifgs"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"src_file": {
+					"type": "string"
+				},
+				"dst_file": {
+					"type": "string"
+				}
+			}
+		}
+	}
+}
