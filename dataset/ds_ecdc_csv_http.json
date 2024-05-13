@@ -1,0 +1,35 @@
+{
+	"name": "ds_ecdc_csv_http",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ECDC MONK SITE HTTP",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"HOST": "raw.githubusercontent.com",
+				"SCHEME": "https"
+			}
+		},
+		"parameters": {
+			"FILE_NAME": {
+				"type": "string",
+				"defaultValue": "cases_deaths.csv"
+			}
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "HttpServerLocation",
+				"relativeUrl": {
+					"value": "@concat('cloudboxacademy/covid19/main/ecdc_data/', dataset().FILE_NAME)",
+					"type": "Expression"
+				}
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	}
+}
