@@ -2,15 +2,15 @@
 	"name": "cedc_monk",
 	"properties": {
 		"parameters": {
-			"HTTP_RESOURCE_PATH": {
-				"type": "String",
+			"ECDC_MONK": {
+				"type": "string",
 				"defaultValue": "github.com"
 			}
 		},
 		"annotations": [],
 		"type": "HttpServer",
 		"typeProperties": {
-			"url": "@{concat('https://', linkedService().HTTP_RESOURCE_PATH)",
+			"url": "@{concat('https://', linkedService().ECDC_MONK)}",
 			"enableServerCertificateValidation": true,
 			"authenticationType": "Anonymous"
 		}
