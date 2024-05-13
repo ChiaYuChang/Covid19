@@ -4,7 +4,7 @@
 		"parameters": {
 			"HOST": {
 				"type": "string",
-				"defaultValue": "github.com"
+				"defaultValue": "raw.githubusercontent.com"
 			},
 			"SCHEME": {
 				"type": "string",
