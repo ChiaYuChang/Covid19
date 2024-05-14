@@ -14,6 +14,9 @@
 		"Covid19 Azure Data Lake_properties_typeProperties_url": {
 			"value": "https://covid19dludemycourse.dfs.core.windows.net/"
 		},
+		"ECDC MONK SITE HTTP_properties_typeProperties_url": {
+			"value": "@{concat(linkedService().SCHEME, ':\\\\', linkedService().HOST)}"
+		},
 		"trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE": {
 			"value": 10
 		},
