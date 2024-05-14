@@ -73,6 +73,24 @@
 					},
 					"ECDC MONK SITE HTTP_properties_typeProperties_url": {
 						"value": "[parameters('ECDC MONK SITE HTTP_properties_typeProperties_url')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "covid19-df-udemy-course_ArmTemplate_1",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2018-02-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_1.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
 					},
 					"trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE": {
 						"value": "[parameters('trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE')]"
@@ -85,7 +103,9 @@
 					}
 				}
 			},
-			"dependsOn": []
+			"dependsOn": [
+				"[resourceId('Microsoft.Resources/deployments', 'covid19-df-udemy-course_ArmTemplate_0')]"
+			]
 		}
 	]
 }

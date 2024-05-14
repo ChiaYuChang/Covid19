@@ -1,0 +1,59 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "covid19-df-udemy-course"
+		},
+		"trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE": {
+			"type": "int",
+			"defaultValue": 10
+		},
+		"trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_COLUMN_COUNT": {
+			"type": "int",
+			"defaultValue": 13
+		},
+		"trigger when file uploaded_properties_typeProperties_scope": {
+			"type": "string",
+			"defaultValue": "/subscriptions/0c040362-4550-4be8-9248-64fbb2b1ba81/resourceGroups/Udemy-Azure_Data_Factory_Covid19/providers/Microsoft.Storage/storageAccounts/covid19saudemycourse"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/trigger when file uploaded')]",
+			"type": "Microsoft.DataFactory/factories/triggers",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Started",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "pl_ingest_population_data",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"FILE_CHECKING_INTERVAL_MINUTIE": "[parameters('trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE')]",
+							"FILE_COLUMN_COUNT": "[parameters('trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_COLUMN_COUNT')]"
+						}
+					}
+				],
+				"type": "BlobEventsTrigger",
+				"typeProperties": {
+					"blobPathBeginsWith": "/population/blobs/population_by_age.tsv.gz",
+					"ignoreEmptyBlobs": true,
+					"scope": "[parameters('trigger when file uploaded_properties_typeProperties_scope')]",
+					"events": [
+						"Microsoft.Storage.BlobCreated"
+					]
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}
