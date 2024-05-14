@@ -1,0 +1,20 @@
+{
+	"name": "ds_silver_daily_hospital_admissions_parquet",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Covid19 Azure Data Lake",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "ecdc/hospital_admissions/daily",
+				"fileSystem": "silver"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	}
+}

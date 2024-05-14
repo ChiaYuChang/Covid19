@@ -1,9 +1,35 @@
 {
-	"name": "pl_porcess_cases_deaths",
+	"name": "pl_porcess_ecdc_data",
 	"properties": {
 		"activities": [
 			{
 				"name": "Transform Cases Deaths",
+				"type": "ExecuteDataFlow",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "df_cases_deaths_transformation",
+						"type": "DataFlowReference"
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "Transform Hospital Admissions",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {
@@ -16,7 +42,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "df_transformation",
+						"referenceName": "df_hostpital_admissions_transform",
 						"type": "DataFlowReference"
 					},
 					"compute": {

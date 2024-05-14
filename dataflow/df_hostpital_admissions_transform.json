@@ -1,0 +1,225 @@
+{
+	"name": "df_hostpital_admissions_transform",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "ds_bronze_hospital_admissions_csv",
+						"type": "DatasetReference"
+					},
+					"name": "HospitalAdmissions"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_bronze_dim_date_csv",
+						"type": "DatasetReference"
+					},
+					"name": "DimDate"
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_bronze_country_code_loopup",
+						"type": "DatasetReference"
+					},
+					"name": "CountryCode"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "ds_silver_daily_hospital_admissions_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "SinkToDailyHospitalAdmissionsData",
+					"rejectedDataLinkedService": {
+						"referenceName": "Covid19 Azure Data Lake",
+						"type": "LinkedServiceReference"
+					}
+				},
+				{
+					"dataset": {
+						"referenceName": "ds_silver_weekly_hospital_admissions_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "SinkToWeeklyHospitalAdmissionsData"
+				}
+			],
+			"transformations": [
+				{
+					"name": "AggToGenStartAndEndDateOfWeek"
+				},
+				{
+					"name": "NewYearWeekCol"
+				},
+				{
+					"name": "SelectDailyFileColumns"
+				},
+				{
+					"name": "PivotIndicatior"
+				},
+				{
+					"name": "LeftJoinCountryCode"
+				},
+				{
+					"name": "FilterDailyData"
+				},
+				{
+					"name": "SelectAndRenameColumnsForDailyData"
+				},
+				{
+					"name": "LeftJoinDimDate"
+				},
+				{
+					"name": "AggWeeklyData"
+				},
+				{
+					"name": "SelectAndRenameColumnsForWeeklyData"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          country as string,",
+				"          indicator as string,",
+				"          date as date 'yyyy-MM-dd',",
+				"          year_week as string,",
+				"          value as string,",
+				"          source as string,",
+				"          url as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> HospitalAdmissions",
+				"source(output(",
+				"          date_key as integer,",
+				"          date as date 'yyyy-MM-dd',",
+				"          year as integer,",
+				"          month as integer,",
+				"          day as integer,",
+				"          day_name as string,",
+				"          day_of_year as integer,",
+				"          week_of_month as integer,",
+				"          week_of_year as integer,",
+				"          month_name as string,",
+				"          year_month as string,",
+				"          year_week as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> DimDate",
+				"source(output(",
+				"          country as string,",
+				"          country_code_2_digit as string,",
+				"          country_code_3_digit as string,",
+				"          continent as string,",
+				"          population as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> CountryCode",
+				"DimDate aggregate(groupBy(year,",
+				"          week_of_year),",
+				"     start_date = min(date),",
+				"          end_date = max(date)) ~> AggToGenStartAndEndDateOfWeek",
+				"AggToGenStartAndEndDateOfWeek derive(year_week = concat(toString(year), '-W', toString(week_of_year, '00'))) ~> NewYearWeekCol",
+				"LeftJoinCountryCode select(mapColumn(",
+				"          country = HospitalAdmissions@country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population,",
+				"          reported_date = date,",
+				"          indicator,",
+				"          value,",
+				"          source,",
+				"          year_week",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectDailyFileColumns",
+				"SelectDailyFileColumns pivot(groupBy(country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population,",
+				"          reported_date,",
+				"          source,",
+				"          year_week),",
+				"     pivotBy(indicator, ['Daily ICU occupancy', 'Daily hospital occupancy']),",
+				"     count = first(toInteger(value), true()),",
+				"     columnNaming: '$V_$N',",
+				"     lateral: true) ~> PivotIndicatior",
+				"FilterDailyData, CountryCode join(lower(HospitalAdmissions@country) == lower(CountryCode@country),",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> LeftJoinCountryCode",
+				"HospitalAdmissions filter(startsWith(indicator, 'Daily')) ~> FilterDailyData",
+				"PivotIndicatior select(mapColumn(",
+				"          country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population,",
+				"          reported_date,",
+				"          source,",
+				"          hospital_occupancy_count = {Daily hospital occupancy_count},",
+				"          icu_occupancy_count = {Daily ICU occupancy_count},",
+				"          year_week",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectAndRenameColumnsForDailyData",
+				"AggWeeklyData, NewYearWeekCol join(AggWeeklyData@year_week == NewYearWeekCol@year_week,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> LeftJoinDimDate",
+				"SelectAndRenameColumnsForDailyData aggregate(groupBy(country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          year_week,",
+				"          population,",
+				"          source),",
+				"     new_hospital_occupancy_count = sum(hospital_occupancy_count),",
+				"          new_icu_occupancy_count = sum(icu_occupancy_count)) ~> AggWeeklyData",
+				"LeftJoinDimDate select(mapColumn(",
+				"          country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population,",
+				"          reported_year_week = AggWeeklyData@year_week,",
+				"          reported_start_date = start_date,",
+				"          reported_end_date = end_date,",
+				"          new_hospital_occupancy_count,",
+				"          new_icu_occupancy_count,",
+				"          source",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectAndRenameColumnsForWeeklyData",
+				"SelectAndRenameColumnsForDailyData sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     mapColumn(",
+				"          country,",
+				"          country_code_2_digit,",
+				"          country_code_3_digit,",
+				"          population,",
+				"          reported_date,",
+				"          source,",
+				"          hospital_occupancy_count,",
+				"          icu_occupancy_count",
+				"     )) ~> SinkToDailyHospitalAdmissionsData",
+				"SelectAndRenameColumnsForWeeklyData sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SinkToWeeklyHospitalAdmissionsData"
+			]
+		}
+	}
+}
