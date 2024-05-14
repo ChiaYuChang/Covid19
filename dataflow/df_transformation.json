@@ -40,7 +40,7 @@
 					"name": "PivotCount"
 				},
 				{
-					"name": "lookup1"
+					"name": "MergeWithContryCode"
 				},
 				{
 					"name": "SelectAndRename"
@@ -55,7 +55,7 @@
 				"          indicator as string,",
 				"          daily_count as integer,",
 				"          date as date,",
-				"          rate_14_day as double,",
+				"          rate_14_day as string,",
 				"          source as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
@@ -71,7 +71,7 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false) ~> ContryCodeLookup",
-				"CasesDeaths filter(and(continent == 'Europe', not(isNull(country_code)))) ~> FilterEUOnly",
+				"CasesDeaths filter(continent == 'Europe') ~> FilterEUOnly",
 				"FilterEUOnly select(mapColumn(",
 				"          country,",
 				"          country_code,",
@@ -79,8 +79,8 @@
 				"          indicator,",
 				"          daily_count,",
 				"          source,",
-				"          each(match(name == 'date'),",
-				"               'reported_' + $$  = $$)",
+				"          each(match(name=='date'),",
+				"               'reported_'+$$ = $$)",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> SelectAndDrop",
@@ -97,8 +97,8 @@
 				"     && country_code == country_code_3_digit,",
 				"     multiple: false,",
 				"     pickup: 'any',",
-				"     broadcast: 'auto')~> lookup1",
-				"lookup1 select(mapColumn(",
+				"     broadcast: 'auto')~> MergeWithContryCode",
+				"MergeWithContryCode select(mapColumn(",
 				"          country = PivotCount@country,",
 				"          country_code_2_digit,",
 				"          country_code_3_digit,",
