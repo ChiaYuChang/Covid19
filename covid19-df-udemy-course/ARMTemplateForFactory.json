@@ -202,7 +202,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataset": {
-								"referenceName": "ds_popultaion_raw_gz",
+								"referenceName": "ds_raw_population_by_age_gz",
 								"type": "DatasetReference",
 								"parameters": {}
 							},
@@ -235,7 +235,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"dataset": {
-								"referenceName": "ds_popultaion_raw_gz",
+								"referenceName": "ds_raw_population_by_age_gz",
 								"type": "DatasetReference",
 								"parameters": {}
 							},
@@ -257,6 +257,8 @@
 					{
 						"name": "Check Column Count",
 						"type": "IfCondition",
+						"state": "Active",
+						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "Get File Metadata",
@@ -288,8 +290,6 @@
 								{
 									"name": "Copy population raw data",
 									"type": "Copy",
-									"state": "Inactive",
-									"onInactiveMarkAs": "Succeeded",
 									"dependsOn": [],
 									"policy": {
 										"timeout": "0.00:10:00",
@@ -337,14 +337,14 @@
 									},
 									"inputs": [
 										{
-											"referenceName": "ds_popultaion_raw_gz",
+											"referenceName": "ds_raw_population_by_age_gz",
 											"type": "DatasetReference",
 											"parameters": {}
 										}
 									],
 									"outputs": [
 										{
-											"referenceName": "ds_population_raw_tsv",
+											"referenceName": "ds_bronze_population_by_age_tsv",
 											"type": "DatasetReference",
 											"parameters": {}
 										}
@@ -371,7 +371,7 @@
 									"userProperties": [],
 									"typeProperties": {
 										"dataset": {
-											"referenceName": "ds_popultaion_raw_gz",
+											"referenceName": "ds_raw_population_by_age_gz",
 											"type": "DatasetReference",
 											"parameters": {}
 										},
@@ -404,8 +404,8 @@
 				"annotations": []
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/ds_popultaion_raw_gz')]",
-				"[concat(variables('factoryId'), '/datasets/ds_population_raw_tsv')]"
+				"[concat(variables('factoryId'), '/datasets/ds_raw_population_by_age_gz')]",
+				"[concat(variables('factoryId'), '/datasets/ds_bronze_population_by_age_tsv')]"
 			]
 		},
 		{
@@ -865,7 +865,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ds_population_raw_tsv')]",
+			"name": "[concat(parameters('factoryName'), '/ds_bronze_population_by_age_tsv')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -880,9 +880,10 @@
 					"location": {
 						"type": "AzureBlobFSLocation",
 						"fileName": "population_by_age.tsv",
+						"folderPath": "population",
 						"fileSystem": "bronze"
 					},
-					"columnDelimiter": ",",
+					"columnDelimiter": "\t",
 					"escapeChar": "\\",
 					"firstRowAsHeader": true,
 					"quoteChar": "\""
@@ -894,7 +895,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ds_popultaion_raw_gz')]",
+			"name": "[concat(parameters('factoryName'), '/ds_raw_population_by_age_gz')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
