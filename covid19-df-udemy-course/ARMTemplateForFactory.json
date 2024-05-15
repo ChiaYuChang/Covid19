@@ -257,8 +257,6 @@
 					{
 						"name": "Check Column Count",
 						"type": "IfCondition",
-						"state": "Active",
-						"onInactiveMarkAs": "Succeeded",
 						"dependsOn": [
 							{
 								"activity": "Get File Metadata",
@@ -324,7 +322,7 @@
 										},
 										"enableStaging": false,
 										"parallelCopies": 1,
-										"validateDataConsistency": true,
+										"validateDataConsistency": false,
 										"dataIntegrationUnits": 2,
 										"translator": {
 											"type": "TabularTranslator",
@@ -879,7 +877,6 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "population_by_age.tsv",
 						"folderPath": "population",
 						"fileSystem": "bronze"
 					},
