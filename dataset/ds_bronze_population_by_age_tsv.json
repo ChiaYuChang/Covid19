@@ -1,5 +1,5 @@
 {
-	"name": "ds_population_raw_tsv",
+	"name": "ds_bronze_population_by_age_tsv",
 	"properties": {
 		"description": "The file contains population data grouped by country and age.",
 		"linkedServiceName": {
@@ -12,6 +12,7 @@
 			"location": {
 				"type": "AzureBlobFSLocation",
 				"fileName": "population_by_age.tsv",
+				"folderPath": "population",
 				"fileSystem": "bronze"
 			},
 			"columnDelimiter": "\t",

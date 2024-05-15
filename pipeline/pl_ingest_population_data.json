@@ -9,7 +9,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "ds_popultaion_raw_gz",
+						"referenceName": "ds_raw_population_by_age_gz",
 						"type": "DatasetReference"
 					},
 					"timeout": "1.00:00:00",
@@ -41,7 +41,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataset": {
-						"referenceName": "ds_popultaion_raw_gz",
+						"referenceName": "ds_raw_population_by_age_gz",
 						"type": "DatasetReference"
 					},
 					"fieldList": [
@@ -51,6 +51,7 @@
 					],
 					"storeSettings": {
 						"type": "AzureBlobStorageReadSettings",
+						"recursive": true,
 						"enablePartitionDiscovery": false
 					},
 					"formatSettings": {
@@ -61,6 +62,8 @@
 			{
 				"name": "Check Column Count",
 				"type": "IfCondition",
+				"state": "Active",
+				"onInactiveMarkAs": "Succeeded",
 				"dependsOn": [
 					{
 						"activity": "Get File Metadata",
@@ -92,8 +95,6 @@
 						{
 							"name": "Copy population raw data",
 							"type": "Copy",
-							"state": "Inactive",
-							"onInactiveMarkAs": "Succeeded",
 							"dependsOn": [],
 							"policy": {
 								"timeout": "0.00:10:00",
@@ -141,13 +142,13 @@
 							},
 							"inputs": [
 								{
-									"referenceName": "ds_popultaion_raw_gz",
+									"referenceName": "ds_raw_population_by_age_gz",
 									"type": "DatasetReference"
 								}
 							],
 							"outputs": [
 								{
-									"referenceName": "ds_population_raw_tsv",
+									"referenceName": "ds_bronze_population_by_age_tsv",
 									"type": "DatasetReference"
 								}
 							]
@@ -173,7 +174,7 @@
 							"userProperties": [],
 							"typeProperties": {
 								"dataset": {
-									"referenceName": "ds_popultaion_raw_gz",
+									"referenceName": "ds_raw_population_by_age_gz",
 									"type": "DatasetReference"
 								},
 								"enableLogging": false,
