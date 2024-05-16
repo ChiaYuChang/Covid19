@@ -19,6 +19,9 @@
 				"defaultValue": "cloudboxacademy/covid19/main/ecdc_data"
 			}
 		},
+		"folder": {
+			"name": "0 ingestion"
+		},
 		"annotations": [],
 		"type": "DelimitedText",
 		"typeProperties": {

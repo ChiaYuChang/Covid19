@@ -1,5 +1,5 @@
 {
-	"name": "ds_ecdc_csv_dl",
+	"name": "ds_bronze_ecdc_csv",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "Covid19 Azure Data Lake",
@@ -14,6 +14,9 @@
 				"type": "string",
 				"defaultValue": "ecdc"
 			}
+		},
+		"folder": {
+			"name": "1 bronze"
 		},
 		"annotations": [],
 		"type": "DelimitedText",

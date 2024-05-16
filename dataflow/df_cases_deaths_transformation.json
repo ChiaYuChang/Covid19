@@ -53,9 +53,6 @@
 				}
 			],
 			"scriptLines": [
-				"parameters{",
-				"     CURR_DATE as date (currentDate('UTC'))",
-				"}",
 				"source(output(",
 				"          country as string,",
 				"          country_code as string,",
@@ -120,7 +117,7 @@
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> SelectAndRename",
 				"MergeWithContryCode filter(length(country_code_2_digit) == 2 && length(country_code_3_digit) == 3) ~> RemoveDataWOCountryCode",
-				"SelectAndRename derive(transformed_at = $CURR_DATE) ~> AddTimeStamp",
+				"SelectAndRename derive(transformed_at = currentDate('UTC')) ~> AddTimeStamp",
 				"AddTimeStamp sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'parquet',",

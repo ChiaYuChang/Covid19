@@ -82,7 +82,7 @@
 							],
 							"outputs": [
 								{
-									"referenceName": "ds_ecdc_csv_dl",
+									"referenceName": "ds_bronze_ecdc_csv",
 									"type": "DatasetReference",
 									"parameters": {
 										"FILE_NAME": {

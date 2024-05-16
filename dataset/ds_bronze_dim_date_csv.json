@@ -5,6 +5,9 @@
 			"referenceName": "Covid19 Azure Data Lake",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "a lookup"
+		},
 		"annotations": [],
 		"type": "DelimitedText",
 		"typeProperties": {
