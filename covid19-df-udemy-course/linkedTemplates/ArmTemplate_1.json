@@ -1094,6 +1094,9 @@
 						}
 					],
 					"scriptLines": [
+						"parameters{",
+						"     CURR_DATE as date (currentDate('UTC'))",
+						"}",
 						"source(output(",
 						"          country as string,",
 						"          country_code as string,",
@@ -1158,19 +1161,9 @@
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> SelectAndRename",
 						"MergeWithContryCode filter(length(country_code_2_digit) == 2 && length(country_code_3_digit) == 3) ~> RemoveDataWOCountryCode",
-						"SelectAndRename derive(created_at = currentTimestamp()) ~> AddTimeStamp",
+						"SelectAndRename derive(transformed_at = $CURR_DATE) ~> AddTimeStamp",
 						"AddTimeStamp sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
-						"     input(",
-						"          country as string,",
-						"          country_code_2_digit as string,",
-						"          country_code_3_digit as string,",
-						"          population as integer,",
-						"          cases_count as long,",
-						"          deaths_count as long,",
-						"          reported_date as date,",
-						"          source as string",
-						"     ),",
 						"     format: 'parquet',",
 						"     umask: 0022,",
 						"     preCommands: [],",
@@ -1274,6 +1267,9 @@
 						}
 					],
 					"scriptLines": [
+						"parameters{",
+						"     CURR_DATE as date (currentDate('UTC'))",
+						"}",
 						"source(output(",
 						"          country as string,",
 						"          indicator as string,",
@@ -1324,7 +1320,7 @@
 						"          population,",
 						"          reported_date,",
 						"          source,",
-						"          transformation_date),",
+						"          transformed_at),",
 						"     pivotBy(indicator, ['Daily ICU occupancy', 'Daily hospital occupancy']),",
 						"     count = first(toInteger(value), true()),",
 						"     columnNaming: '$V_$N',",
@@ -1338,7 +1334,7 @@
 						"          hospital_occupancy_count = {Daily hospital occupancy_count},",
 						"          icu_occupancy_count = {Daily ICU occupancy_count},",
 						"          source,",
-						"          transformation_date",
+						"          transformed_at",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> SelectAndRenameColumnsForDailyData",
@@ -1368,7 +1364,7 @@
 						"          population,",
 						"          reported_year_week,",
 						"          source,",
-						"          transformation_date),",
+						"          transformed_at),",
 						"     pivotBy(indicator, ['Weekly new hospital admissions per 100k', 'Weekly new ICU admissions per 100k']),",
 						"     count = sum(toDouble(value)),",
 						"     columnNaming: '$V_$N',",
@@ -1384,7 +1380,7 @@
 						"          new_hospital_occupacy_count = {Weekly new hospital admissions per 100k_count},",
 						"          new_icu_occupacy_count = {Weekly new ICU admissions per 100k_count},",
 						"          source,",
-						"          transformation_date",
+						"          transformed_at",
 						"     ),",
 						"     skipDuplicateMapInputs: true,",
 						"     skipDuplicateMapOutputs: true) ~> SelectAndRenameColumnsForWeeklyData",
@@ -1397,7 +1393,7 @@
 						"     asc(country, true)) ~> SortWeeklyByYearWeekThenCountryName",
 						"SelectAndRenameColumnsForDailyData sort(desc(reported_date, true),",
 						"     asc(country, true)) ~> SortWeeklyByDateThenCountryName",
-						"select1 derive(transformation_date = currentTimestamp()) ~> AddTimestamp",
+						"select1 derive(transformed_at = $CURR_DATE) ~> AddTimestamp",
 						"SortWeeklyByDateThenCountryName sink(allowSchemaDrift: true,",
 						"     validateSchema: false,",
 						"     format: 'parquet',",
@@ -1441,7 +1437,12 @@
 							"dataflow": {
 								"referenceName": "df_cases_deaths_transformation",
 								"type": "DataFlowReference",
-								"parameters": {},
+								"parameters": {
+									"CURR_DATE": {
+										"value": "@variables('current_time')",
+										"type": "Expression"
+									}
+								},
 								"datasetParameters": {
 									"CasesDeaths": {},
 									"ContryCodeLookup": {},
@@ -1472,7 +1473,12 @@
 							"dataflow": {
 								"referenceName": "df_hostpital_admissions_transform",
 								"type": "DataFlowReference",
-								"parameters": {},
+								"parameters": {
+									"CURR_DATE": {
+										"value": "@variables('current_time')",
+										"type": "Expression"
+									}
+								},
 								"datasetParameters": {
 									"HospitalAdmissions": {},
 									"DimDate": {},
@@ -1492,6 +1498,11 @@
 				],
 				"policy": {
 					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"current_time": {
+						"type": "String"
+					}
 				},
 				"folder": {
 					"name": "pl_transform_data"
