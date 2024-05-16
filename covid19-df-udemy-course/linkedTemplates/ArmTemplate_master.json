@@ -27,18 +27,6 @@
 			"type": "string",
 			"defaultValue": "@{concat(linkedService().SCHEME, ':\\\\', linkedService().HOST)}"
 		},
-		"trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE": {
-			"type": "int",
-			"defaultValue": 10
-		},
-		"trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_COLUMN_COUNT": {
-			"type": "int",
-			"defaultValue": 13
-		},
-		"trigger when file uploaded_properties_typeProperties_scope": {
-			"type": "string",
-			"defaultValue": "/subscriptions/0c040362-4550-4be8-9248-64fbb2b1ba81/resourceGroups/Udemy-Azure_Data_Factory_Covid19/providers/Microsoft.Storage/storageAccounts/covid19saudemycourse"
-		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "URI to storage account containing linked ARM templates"
@@ -98,15 +86,6 @@
 				"parameters": {
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
-					},
-					"trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE": {
-						"value": "[parameters('trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE')]"
-					},
-					"trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_COLUMN_COUNT": {
-						"value": "[parameters('trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_COLUMN_COUNT')]"
-					},
-					"trigger when file uploaded_properties_typeProperties_scope": {
-						"value": "[parameters('trigger when file uploaded_properties_typeProperties_scope')]"
 					}
 				}
 			},

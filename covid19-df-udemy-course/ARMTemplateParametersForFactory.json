@@ -19,15 +19,6 @@
 		},
 		"ECDC MONK SITE HTTP_properties_typeProperties_url": {
 			"value": "@{concat(linkedService().SCHEME, ':\\\\', linkedService().HOST)}"
-		},
-		"trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE": {
-			"value": 10
-		},
-		"trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_COLUMN_COUNT": {
-			"value": 13
-		},
-		"trigger when file uploaded_properties_typeProperties_scope": {
-			"value": "/subscriptions/0c040362-4550-4be8-9248-64fbb2b1ba81/resourceGroups/Udemy-Azure_Data_Factory_Covid19/providers/Microsoft.Storage/storageAccounts/covid19saudemycourse"
 		}
 	}
 }
