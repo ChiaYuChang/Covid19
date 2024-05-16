@@ -50,6 +50,10 @@
 				},
 				"userProperties": [],
 				"typeProperties": {
+					"pipeline": {
+						"referenceName": "spl_process_population_data",
+						"type": "PipelineReference"
+					},
 					"waitOnCompletion": true
 				}
 			},
