@@ -6,6 +6,9 @@
 			"referenceName": "Covid19 Azure Blob Storage",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "0 ingestion"
+		},
 		"annotations": [],
 		"type": "DelimitedText",
 		"typeProperties": {
