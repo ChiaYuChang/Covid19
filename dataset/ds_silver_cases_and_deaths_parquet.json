@@ -1,5 +1,5 @@
 {
-	"name": "ds_silver_cases_deaths_parquet",
+	"name": "ds_silver_cases_and_deaths_parquet",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "Covid19 Azure Data Lake",
@@ -10,12 +10,44 @@
 		"typeProperties": {
 			"location": {
 				"type": "AzureBlobFSLocation",
-				"fileName": "cases_deaths",
 				"folderPath": "ecdc/cases_deaths",
 				"fileSystem": "silver"
 			},
 			"compressionCodec": "snappy"
 		},
-		"schema": []
+		"schema": [
+			{
+				"name": "country",
+				"type": "UTF8"
+			},
+			{
+				"name": "country_code_2_digit",
+				"type": "UTF8"
+			},
+			{
+				"name": "country_code_3_digit",
+				"type": "UTF8"
+			},
+			{
+				"name": "population",
+				"type": "INT32"
+			},
+			{
+				"name": "cases_count",
+				"type": "INT64"
+			},
+			{
+				"name": "deaths_count",
+				"type": "INT64"
+			},
+			{
+				"name": "reported_date",
+				"type": "DATE"
+			},
+			{
+				"name": "source",
+				"type": "UTF8"
+			}
+		]
 	}
 }

@@ -6,7 +6,7 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "ds_bronze_cases_death_csv",
+						"referenceName": "ds_bronze_cases_and_death_csv",
 						"type": "DatasetReference"
 					},
 					"name": "CasesDeaths"
@@ -22,7 +22,7 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "ds_silver_cases_deaths_parquet",
+						"referenceName": "ds_silver_cases_and_deaths_parquet",
 						"type": "DatasetReference"
 					},
 					"name": "CasesAndDeathSink"
@@ -44,6 +44,12 @@
 				},
 				{
 					"name": "SelectAndRename"
+				},
+				{
+					"name": "RemoveDataWOCountryCode"
+				},
+				{
+					"name": "AddTimeStamp"
 				}
 			],
 			"scriptLines": [
@@ -98,7 +104,7 @@
 				"     multiple: false,",
 				"     pickup: 'any',",
 				"     broadcast: 'auto')~> MergeWithContryCode",
-				"MergeWithContryCode select(mapColumn(",
+				"RemoveDataWOCountryCode select(mapColumn(",
 				"          country = PivotCount@country,",
 				"          country_code_2_digit,",
 				"          country_code_3_digit,",
@@ -110,8 +116,20 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> SelectAndRename",
-				"SelectAndRename sink(allowSchemaDrift: true,",
+				"MergeWithContryCode filter(length(country_code_2_digit) == 2 && length(country_code_3_digit) == 3) ~> RemoveDataWOCountryCode",
+				"SelectAndRename derive(created_at = currentTimestamp()) ~> AddTimeStamp",
+				"AddTimeStamp sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
+				"     input(",
+				"          country as string,",
+				"          country_code_2_digit as string,",
+				"          country_code_3_digit as string,",
+				"          population as integer,",
+				"          cases_count as long,",
+				"          deaths_count as long,",
+				"          reported_date as date,",
+				"          source as string",
+				"     ),",
 				"     format: 'parquet',",
 				"     umask: 0022,",
 				"     preCommands: [],",
