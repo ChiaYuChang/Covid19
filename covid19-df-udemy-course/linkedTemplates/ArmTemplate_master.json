@@ -15,6 +15,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'Covid19 Azure Data Lake'"
 		},
+		"Covid19SqlsrvUdemyCourse_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Covid19SqlsrvUdemyCourse'"
+		},
 		"Covid19 Azure Data Lake_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://covid19dludemycourse.dfs.core.windows.net/"
@@ -23,11 +27,11 @@
 			"type": "string",
 			"defaultValue": "@{concat(linkedService().SCHEME, ':\\\\', linkedService().HOST)}"
 		},
-		"trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE": {
+		"trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE": {
 			"type": "int",
 			"defaultValue": 10
 		},
-		"trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_COLUMN_COUNT": {
+		"trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_COLUMN_COUNT": {
 			"type": "int",
 			"defaultValue": 13
 		},
@@ -68,6 +72,9 @@
 					"Covid19 Azure Data Lake_accountKey": {
 						"value": "[parameters('Covid19 Azure Data Lake_accountKey')]"
 					},
+					"Covid19SqlsrvUdemyCourse_connectionString": {
+						"value": "[parameters('Covid19SqlsrvUdemyCourse_connectionString')]"
+					},
 					"Covid19 Azure Data Lake_properties_typeProperties_url": {
 						"value": "[parameters('Covid19 Azure Data Lake_properties_typeProperties_url')]"
 					},
@@ -92,11 +99,11 @@
 					"factoryName": {
 						"value": "[parameters('factoryName')]"
 					},
-					"trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE": {
-						"value": "[parameters('trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE')]"
+					"trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE": {
+						"value": "[parameters('trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_CHECKING_INTERVAL_MINUTIE')]"
 					},
-					"trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_COLUMN_COUNT": {
-						"value": "[parameters('trigger when file uploaded_properties_pl_ingest_population_data_parameters_FILE_COLUMN_COUNT')]"
+					"trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_COLUMN_COUNT": {
+						"value": "[parameters('trigger when file uploaded_properties_spl_ingest_population_data_parameters_FILE_COLUMN_COUNT')]"
 					},
 					"trigger when file uploaded_properties_typeProperties_scope": {
 						"value": "[parameters('trigger when file uploaded_properties_typeProperties_scope')]"

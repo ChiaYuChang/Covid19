@@ -15,6 +15,10 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'accountKey' of 'Covid19 Azure Data Lake'"
 		},
+		"Covid19SqlsrvUdemyCourse_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'Covid19SqlsrvUdemyCourse'"
+		},
 		"Covid19 Azure Data Lake_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://covid19dludemycourse.dfs.core.windows.net/"
@@ -28,6 +32,364 @@
 		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
 	},
 	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/spl_process_testing_and_population_data')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Set_databricks_instance",
+						"type": "SetVariable",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "databricks_instance",
+							"value": {
+								"value": "@concat('adb-', pipeline().parameters.DATABRICKS_WORKSPACE_NAME, '.azuredatabricks.net')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Run_Job",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Set_databricks_instance",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "POST",
+							"headers": {},
+							"url": {
+								"value": "@concat('https://', variables('databricks_instance'), '/api/2.1/jobs/run-now')",
+								"type": "Expression"
+							},
+							"body": {
+								"value": "@concat('{\"job_id\": ', string(pipeline().parameters.DATABRICKS_WORKFLOW_JOB_ID),'}')",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": {
+									"value": "@pipeline().parameters.DATABRICKS_RESOURCE",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Set_workflow_job_run_id",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Run_Job",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "job_run_id",
+							"value": {
+								"value": "@activity('Run_Job').output.run_id",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Wait_until_workflow_ended",
+						"type": "Until",
+						"dependsOn": [
+							{
+								"activity": "Set_workflow_job_run_id",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@contains(pipeline().parameters.DATABRICKS_TERMINATED_STATES, variables('job_state'))",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Check_job_state",
+									"type": "WebActivity",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"method": "GET",
+										"headers": {},
+										"url": {
+											"value": "@concat('https://', variables('databricks_instance'), '/api/2.1/jobs/runs/get?run_id=', variables('job_run_id'))",
+											"type": "Expression"
+										},
+										"authentication": {
+											"type": "MSI",
+											"resource": {
+												"value": "@pipeline().parameters.DATABRICKS_RESOURCE",
+												"type": "Expression"
+											}
+										}
+									}
+								},
+								{
+									"name": "Update_job_state_to_life_cycle_state",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Check_job_state",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "job_state",
+										"value": {
+											"value": "@activity('Check_job_state').output.state.life_cycle_state",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Wait_to_recheck_job_state",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "Update_job_state_to_life_cycle_state",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": {
+											"value": "@variables('job_check_interval')",
+											"type": "Expression"
+										}
+									}
+								}
+							],
+							"timeout": "0.12:00:00"
+						}
+					},
+					{
+						"name": "Cancel_Job",
+						"type": "WebActivity",
+						"dependsOn": [
+							{
+								"activity": "Wait_until_workflow_ended",
+								"dependencyConditions": [
+									"Failed"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "POST",
+							"headers": {},
+							"url": {
+								"value": "@concat('https://', variables('databricks_instance'), '/api/2.1/jobs/runs/cancel')",
+								"type": "Expression"
+							},
+							"body": {
+								"value": "@concat('{\"run_id\": ',  variables('job_run_id'),'}')",
+								"type": "Expression"
+							},
+							"authentication": {
+								"type": "MSI",
+								"resource": {
+									"value": "@pipeline().parameters.DATABRICKS_RESOURCE",
+									"type": "Expression"
+								}
+							}
+						}
+					},
+					{
+						"name": "Job Timeout",
+						"type": "Fail",
+						"dependsOn": [
+							{
+								"activity": "Cancel_Job",
+								"dependencyConditions": [
+									"Completed"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"message": {
+								"value": "@concat('Job Timeout', 'Cancel Job:', activity('Cancel_Job').output.message, '(', activity('Cancel_Job').output.error_code,')')",
+								"type": "Expression"
+							},
+							"errorCode": "500"
+						}
+					},
+					{
+						"name": "Update job state to result_state",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Wait_until_workflow_ended",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "job_state",
+							"value": {
+								"value": "@activity('Check_job_state').output.state.result_state",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "If_job_success",
+						"type": "IfCondition",
+						"dependsOn": [
+							{
+								"activity": "Update job state to result_state",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(variables('job_state'), 'SUCCESS')",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "Job Failed",
+									"type": "Fail",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"message": {
+											"value": "@concat('Job Failed: ', variables('job_state'))",
+											"type": "Expression"
+										},
+										"errorCode": "500"
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"DATABRICKS_HOST": {
+						"type": "string",
+						"defaultValue": "https://accounts.azuredatabricks.net"
+					},
+					"DATABRICKS_CLIENT_ID": {
+						"type": "string",
+						"defaultValue": "380282b7-3b0a-41e1-a143-60c159468243"
+					},
+					"DATABRICKS_WORKSPACE_NAME": {
+						"type": "string",
+						"defaultValue": "1166845494932407.7"
+					},
+					"DATABRICKS_ACCOUNT_ID": {
+						"type": "string",
+						"defaultValue": "67aeafa9-9677-4a69-afc5-7d366447e3d3"
+					},
+					"DATABRICKS_WORKFLOW_JOB_ID": {
+						"type": "int",
+						"defaultValue": 1061633047143074
+					},
+					"DATABRICKS_RESOURCE": {
+						"type": "string",
+						"defaultValue": "2ff814a6-3304-4ab8-85cb-cd0e6f879c1d"
+					},
+					"DATABRICKS_TERMINATED_STATES": {
+						"type": "array",
+						"defaultValue": [
+							"TERMINATED",
+							"SKIPPED",
+							"INTERNAL_ERROR",
+							"BLOCKED"
+						]
+					}
+				},
+				"variables": {
+					"databricks_instance": {
+						"type": "String"
+					},
+					"job_state": {
+						"type": "String",
+						"defaultValue": "PENDING"
+					},
+					"job_check_interval": {
+						"type": "Integer",
+						"defaultValue": 10
+					},
+					"job_run_id": {
+						"type": "Integer"
+					}
+				},
+				"folder": {
+					"name": "pl_transform_data"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
 		{
 			"name": "[concat(parameters('factoryName'), '/Covid19 Azure Blob Storage')]",
 			"type": "Microsoft.DataFactory/factories/linkedServices",
@@ -54,6 +416,19 @@
 						"type": "SecureString",
 						"value": "[parameters('Covid19 Azure Data Lake_accountKey')]"
 					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Covid19SqlsrvUdemyCourse')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('Covid19SqlsrvUdemyCourse_connectionString')]"
 				}
 			},
 			"dependsOn": []
@@ -118,7 +493,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ds_bronze_cases_death_csv')]",
+			"name": "[concat(parameters('factoryName'), '/ds_bronze_cases_and_death_csv')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -198,7 +573,7 @@
 					"location": {
 						"type": "AzureBlobFSLocation",
 						"fileName": "country_lookup.csv",
-						"folderPath": "ecdc",
+						"folderPath": "dim",
 						"fileSystem": "bronze"
 					},
 					"columnDelimiter": ",",
@@ -248,7 +623,7 @@
 					"location": {
 						"type": "AzureBlobFSLocation",
 						"fileName": "dim_date.csv",
-						"folderPath": "ecdc",
+						"folderPath": "dim",
 						"fileSystem": "bronze"
 					},
 					"columnDelimiter": ",",
@@ -370,6 +745,36 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/ds_bronze_population_by_age_tsv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"description": "The file contains population data grouped by country and age.",
+				"linkedServiceName": {
+					"referenceName": "Covid19 Azure Data Lake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "population_by_age.tsv",
+						"folderPath": "population",
+						"fileSystem": "bronze"
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Covid19 Azure Data Lake')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/ds_ecdc_csv_dl')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -459,35 +864,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ds_bronze_population_by_age_tsv')]",
-			"type": "Microsoft.DataFactory/factories/datasets",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"description": "The file contains population data grouped by country and age.",
-				"linkedServiceName": {
-					"referenceName": "Covid19 Azure Data Lake",
-					"type": "LinkedServiceReference"
-				},
-				"annotations": [],
-				"type": "DelimitedText",
-				"typeProperties": {
-					"location": {
-						"type": "AzureBlobFSLocation",
-						"folderPath": "population",
-						"fileSystem": "bronze"
-					},
-					"columnDelimiter": "\t",
-					"escapeChar": "\\",
-					"firstRowAsHeader": true,
-					"quoteChar": "\""
-				},
-				"schema": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/linkedServices/Covid19 Azure Data Lake')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('factoryName'), '/ds_raw_population_by_age_gz')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -519,7 +895,7 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/ds_silver_cases_deaths_parquet')]",
+			"name": "[concat(parameters('factoryName'), '/ds_silver_cases_and_deaths_parquet')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
@@ -532,13 +908,45 @@
 				"typeProperties": {
 					"location": {
 						"type": "AzureBlobFSLocation",
-						"fileName": "cases_deaths",
 						"folderPath": "ecdc/cases_deaths",
 						"fileSystem": "silver"
 					},
 					"compressionCodec": "snappy"
 				},
-				"schema": []
+				"schema": [
+					{
+						"name": "country",
+						"type": "UTF8"
+					},
+					{
+						"name": "country_code_2_digit",
+						"type": "UTF8"
+					},
+					{
+						"name": "country_code_3_digit",
+						"type": "UTF8"
+					},
+					{
+						"name": "population",
+						"type": "INT32"
+					},
+					{
+						"name": "cases_count",
+						"type": "INT64"
+					},
+					{
+						"name": "deaths_count",
+						"type": "INT64"
+					},
+					{
+						"name": "reported_date",
+						"type": "DATE"
+					},
+					{
+						"name": "source",
+						"type": "UTF8"
+					}
+				]
 			},
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/linkedServices/Covid19 Azure Data Lake')]"
@@ -570,6 +978,62 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('factoryName'), '/ds_silver_population_2019_parquet')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Covid19 Azure Data Lake",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "population",
+						"fileSystem": "silver"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "country_code",
+						"type": "UTF8"
+					},
+					{
+						"name": "age_group",
+						"type": "UTF8"
+					},
+					{
+						"name": "min_age",
+						"type": "UTF8"
+					},
+					{
+						"name": "max_age",
+						"type": "UTF8"
+					},
+					{
+						"name": "percentage_2019",
+						"type": "DECIMAL",
+						"precision": 4,
+						"scale": 2
+					},
+					{
+						"name": "country",
+						"type": "UTF8"
+					},
+					{
+						"name": "population",
+						"type": "INT32"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Covid19 Azure Data Lake')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('factoryName'), '/ds_silver_weekly_hospital_admissions_parquet')]",
 			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
@@ -595,817 +1059,134 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('factoryName'), '/pl_ingest_ecdc_data')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
+			"name": "[concat(parameters('factoryName'), '/ds_sliver_testing_parquet')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
 			"apiVersion": "2018-06-01",
 			"properties": {
-				"activities": [
-					{
-						"name": "For All ECDC dataset",
-						"type": "ForEach",
-						"dependsOn": [
-							{
-								"activity": "Lookup ECDC file name",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"items": {
-								"value": "@activity('Lookup ECDC file name').output.value",
-								"type": "Expression"
-							},
-							"activities": [
-								{
-									"name": "Copy CECD data",
-									"type": "Copy",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "DelimitedTextSource",
-											"storeSettings": {
-												"type": "HttpReadSettings",
-												"requestMethod": "GET"
-											},
-											"formatSettings": {
-												"type": "DelimitedTextReadSettings"
-											}
-										},
-										"sink": {
-											"type": "DelimitedTextSink",
-											"storeSettings": {
-												"type": "AzureBlobFSWriteSettings"
-											},
-											"formatSettings": {
-												"type": "DelimitedTextWriteSettings",
-												"quoteAllText": true,
-												"fileExtension": ".txt"
-											}
-										},
-										"enableStaging": false,
-										"translator": {
-											"type": "TabularTranslator",
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "ds_ecdc_csv_http",
-											"type": "DatasetReference",
-											"parameters": {
-												"FILE_NAME": {
-													"value": "@concat(item().source_file, '.csv')",
-													"type": "Expression"
-												},
-												"PATH": {
-													"value": "@item().source_path",
-													"type": "Expression"
-												}
-											}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "ds_ecdc_csv_dl",
-											"type": "DatasetReference",
-											"parameters": {
-												"FILE_NAME": {
-													"value": "@concat(item().sink_file, '.csv')",
-													"type": "Expression"
-												},
-												"PATH": {
-													"value": "@item().sink_path",
-													"type": "Expression"
-												}
-											}
-										}
-									]
-								}
-							]
-						}
-					},
-					{
-						"name": "Lookup ECDC file name",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "JsonSource",
-								"storeSettings": {
-									"type": "AzureBlobStorageReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "JsonReadSettings"
-								}
-							},
-							"dataset": {
-								"referenceName": "conf_ecdc_file_name_json",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"firstRowOnly": false
-						}
-					}
-				],
-				"concurrency": 1,
-				"policy": {
-					"elapsedTimeMetric": {}
+				"linkedServiceName": {
+					"referenceName": "Covid19 Azure Data Lake",
+					"type": "LinkedServiceReference"
 				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/conf_ecdc_file_name_json')]",
-				"[concat(variables('factoryId'), '/datasets/ds_ecdc_csv_http')]",
-				"[concat(variables('factoryId'), '/datasets/ds_ecdc_csv_dl')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/pl_ingest_population_data')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Check whether the file exist",
-						"type": "Validation",
-						"dependsOn": [],
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "ds_raw_population_by_age_gz",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"timeout": "1.00:00:00",
-							"sleep": {
-								"value": "@mul(pipeline().parameters.FILE_CHECKING_INTERVAL_MINUTIE, 60)",
-								"type": "Expression"
-							},
-							"minimumSize": 1024
-						}
-					},
-					{
-						"name": "Get File Metadata",
-						"type": "GetMetadata",
-						"dependsOn": [
-							{
-								"activity": "Check whether the file exist",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataset": {
-								"referenceName": "ds_raw_population_by_age_gz",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"fieldList": [
-								"columnCount",
-								"size",
-								"exists"
-							],
-							"storeSettings": {
-								"type": "AzureBlobStorageReadSettings",
-								"recursive": true,
-								"enablePartitionDiscovery": false
-							},
-							"formatSettings": {
-								"type": "DelimitedTextReadSettings"
-							}
-						}
-					},
-					{
-						"name": "Check Column Count",
-						"type": "IfCondition",
-						"dependsOn": [
-							{
-								"activity": "Get File Metadata",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"expression": {
-								"value": "@equals(activity('Get File Metadata').output.columnCount, pipeline().parameters.FILE_COLUMN_COUNT)",
-								"type": "Expression"
-							},
-							"ifFalseActivities": [
-								{
-									"name": "Invalid File",
-									"description": "The column count of the file is not equals to FILE_COLUMN_COUNT, please check.",
-									"type": "Fail",
-									"dependsOn": [],
-									"userProperties": [],
-									"typeProperties": {
-										"message": "The column count of the file is not equals to FILE_COLUMN_COUNT, please check.",
-										"errorCode": "422"
-									}
-								}
-							],
-							"ifTrueActivities": [
-								{
-									"name": "Copy population raw data",
-									"type": "Copy",
-									"dependsOn": [],
-									"policy": {
-										"timeout": "0.00:10:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"source": {
-											"type": "DelimitedTextSource",
-											"storeSettings": {
-												"type": "AzureBlobStorageReadSettings",
-												"recursive": true,
-												"enablePartitionDiscovery": false
-											},
-											"formatSettings": {
-												"type": "DelimitedTextReadSettings"
-											}
-										},
-										"sink": {
-											"type": "DelimitedTextSink",
-											"storeSettings": {
-												"type": "AzureBlobFSWriteSettings"
-											},
-											"formatSettings": {
-												"type": "DelimitedTextWriteSettings",
-												"quoteAllText": true,
-												"fileExtension": ".txt"
-											}
-										},
-										"enableStaging": false,
-										"parallelCopies": 1,
-										"validateDataConsistency": false,
-										"dataIntegrationUnits": 2,
-										"translator": {
-											"type": "TabularTranslator",
-											"typeConversion": true,
-											"typeConversionSettings": {
-												"allowDataTruncation": true,
-												"treatBooleanAsNumber": false
-											}
-										}
-									},
-									"inputs": [
-										{
-											"referenceName": "ds_raw_population_by_age_gz",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									],
-									"outputs": [
-										{
-											"referenceName": "ds_bronze_population_by_age_tsv",
-											"type": "DatasetReference",
-											"parameters": {}
-										}
-									]
-								},
-								{
-									"name": "Delete Source file",
-									"type": "Delete",
-									"dependsOn": [
-										{
-											"activity": "Copy population raw data",
-											"dependencyConditions": [
-												"Succeeded"
-											]
-										}
-									],
-									"policy": {
-										"timeout": "0.12:00:00",
-										"retry": 0,
-										"retryIntervalInSeconds": 30,
-										"secureOutput": false,
-										"secureInput": false
-									},
-									"userProperties": [],
-									"typeProperties": {
-										"dataset": {
-											"referenceName": "ds_raw_population_by_age_gz",
-											"type": "DatasetReference",
-											"parameters": {}
-										},
-										"enableLogging": false,
-										"storeSettings": {
-											"type": "AzureBlobStorageReadSettings",
-											"recursive": true,
-											"enablePartitionDiscovery": false
-										}
-									}
-								}
-							]
-						}
-					}
-				],
-				"concurrency": 1,
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"parameters": {
-					"FILE_CHECKING_INTERVAL_MINUTIE": {
-						"type": "int",
-						"defaultValue": 10
-					},
-					"FILE_COLUMN_COUNT": {
-						"type": "int",
-						"defaultValue": 13
-					}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/ds_raw_population_by_age_gz')]",
-				"[concat(variables('factoryId'), '/datasets/ds_bronze_population_by_age_tsv')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/df_cases_deaths_transformation')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
+				"annotations": [],
+				"type": "Parquet",
 				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "ds_bronze_cases_death_csv",
-								"type": "DatasetReference"
-							},
-							"name": "CasesDeaths"
-						},
-						{
-							"dataset": {
-								"referenceName": "ds_bronze_country_code_loopup",
-								"type": "DatasetReference"
-							},
-							"name": "ContryCodeLookup"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "ds_silver_cases_deaths_parquet",
-								"type": "DatasetReference"
-							},
-							"name": "CasesAndDeathSink"
-						}
-					],
-					"transformations": [
-						{
-							"name": "FilterEUOnly",
-							"description": "filter Erurope data only"
-						},
-						{
-							"name": "SelectAndDrop"
-						},
-						{
-							"name": "PivotCount"
-						},
-						{
-							"name": "MergeWithContryCode"
-						},
-						{
-							"name": "SelectAndRename"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          country as string,",
-						"          country_code as string,",
-						"          continent as string,",
-						"          population as integer,",
-						"          indicator as string,",
-						"          daily_count as integer,",
-						"          date as date,",
-						"          rate_14_day as string,",
-						"          source as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> CasesDeaths",
-						"source(output(",
-						"          country as string,",
-						"          country_code_2_digit as string,",
-						"          country_code_3_digit as string,",
-						"          continent as string,",
-						"          population as integer",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> ContryCodeLookup",
-						"CasesDeaths filter(continent == 'Europe') ~> FilterEUOnly",
-						"FilterEUOnly select(mapColumn(",
-						"          country,",
-						"          country_code,",
-						"          population,",
-						"          indicator,",
-						"          daily_count,",
-						"          source,",
-						"          each(match(name=='date'),",
-						"               'reported_'+$$ = $$)",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> SelectAndDrop",
-						"SelectAndDrop pivot(groupBy(country,",
-						"          country_code,",
-						"          population,",
-						"          source,",
-						"          reported_date),",
-						"     pivotBy(indicator, ['confirmed cases', 'deaths']),",
-						"     count = sum(daily_count),",
-						"     columnNaming: '$V_$N',",
-						"     lateral: true) ~> PivotCount",
-						"PivotCount, ContryCodeLookup lookup(PivotCount@country == ContryCodeLookup@country",
-						"     && country_code == country_code_3_digit,",
-						"     multiple: false,",
-						"     pickup: 'any',",
-						"     broadcast: 'auto')~> MergeWithContryCode",
-						"MergeWithContryCode select(mapColumn(",
-						"          country = PivotCount@country,",
-						"          country_code_2_digit,",
-						"          country_code_3_digit,",
-						"          population = PivotCount@population,",
-						"          cases_count = {confirmed cases_count},",
-						"          deaths_count,",
-						"          reported_date,",
-						"          source",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> SelectAndRename",
-						"SelectAndRename sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'parquet',",
-						"     umask: 0022,",
-						"     preCommands: [],",
-						"     postCommands: [],",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> CasesAndDeathSink"
-					]
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "ecdc/testing",
+						"fileSystem": "silver"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": [
+					{
+						"name": "country",
+						"type": "UTF8"
+					},
+					{
+						"name": "country_code_2_digit",
+						"type": "UTF8"
+					},
+					{
+						"name": "country_code_3_digit",
+						"type": "UTF8"
+					},
+					{
+						"name": "year_week",
+						"type": "UTF8"
+					},
+					{
+						"name": "week_start_date",
+						"type": "DATE"
+					},
+					{
+						"name": "week_end_date",
+						"type": "DATE"
+					},
+					{
+						"name": "new_cases",
+						"type": "INT32"
+					},
+					{
+						"name": "tests_done",
+						"type": "INT32"
+					},
+					{
+						"name": "population",
+						"type": "INT32"
+					},
+					{
+						"name": "testing_rate",
+						"type": "DOUBLE"
+					},
+					{
+						"name": "positivity_rate",
+						"type": "DOUBLE"
+					},
+					{
+						"name": "testing_data_source",
+						"type": "UTF8"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Covid19 Azure Data Lake')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/sql_tb_cases_and_deaths')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Covid19SqlsrvUdemyCourse",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "country",
+						"type": "varchar"
+					},
+					{
+						"name": "country_code_2_digit",
+						"type": "varchar"
+					},
+					{
+						"name": "country_code_3_digit",
+						"type": "varchar"
+					},
+					{
+						"name": "population",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "cases_count",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "deaths_count",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "reported_date",
+						"type": "date"
+					},
+					{
+						"name": "source",
+						"type": "varchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "covid_reporting",
+					"table": "cases_and_deaths"
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/ds_bronze_cases_death_csv')]",
-				"[concat(variables('factoryId'), '/datasets/ds_bronze_country_code_loopup')]",
-				"[concat(variables('factoryId'), '/datasets/ds_silver_cases_deaths_parquet')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/df_hostpital_admissions_transform')]",
-			"type": "Microsoft.DataFactory/factories/dataflows",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"type": "MappingDataFlow",
-				"typeProperties": {
-					"sources": [
-						{
-							"dataset": {
-								"referenceName": "ds_bronze_hospital_admissions_csv",
-								"type": "DatasetReference"
-							},
-							"name": "HospitalAdmissions"
-						},
-						{
-							"dataset": {
-								"referenceName": "ds_bronze_dim_date_csv",
-								"type": "DatasetReference"
-							},
-							"name": "DimDate"
-						},
-						{
-							"dataset": {
-								"referenceName": "ds_bronze_country_code_loopup",
-								"type": "DatasetReference"
-							},
-							"name": "CountryCode"
-						}
-					],
-					"sinks": [
-						{
-							"dataset": {
-								"referenceName": "ds_silver_daily_hospital_admissions_parquet",
-								"type": "DatasetReference"
-							},
-							"name": "SinkToDailyHospitalAdmissionsData",
-							"rejectedDataLinkedService": {
-								"referenceName": "Covid19 Azure Data Lake",
-								"type": "LinkedServiceReference"
-							}
-						},
-						{
-							"dataset": {
-								"referenceName": "ds_silver_weekly_hospital_admissions_parquet",
-								"type": "DatasetReference"
-							},
-							"name": "SinkToWeeklyHospitalAdmissionsData"
-						}
-					],
-					"transformations": [
-						{
-							"name": "AggToGenStartAndEndDateOfWeek"
-						},
-						{
-							"name": "NewYearWeekCol"
-						},
-						{
-							"name": "PivotDailyIndicatior"
-						},
-						{
-							"name": "SelectAndRenameColumnsForDailyData"
-						},
-						{
-							"name": "SplitDailyFromWeekly"
-						},
-						{
-							"name": "LeftJoinCountryCode"
-						},
-						{
-							"name": "select1"
-						},
-						{
-							"name": "PivotWeeklyIndicatior"
-						},
-						{
-							"name": "SelectAndRenameColumnsForWeeklyData"
-						},
-						{
-							"name": "join1"
-						},
-						{
-							"name": "SortWeeklyByYearWeekThenCountryName"
-						},
-						{
-							"name": "SortWeeklyByDateThenCountryName"
-						}
-					],
-					"scriptLines": [
-						"source(output(",
-						"          country as string,",
-						"          indicator as string,",
-						"          date as date 'yyyy-MM-dd',",
-						"          year_week as string,",
-						"          value as string,",
-						"          source as string,",
-						"          url as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> HospitalAdmissions",
-						"source(output(",
-						"          date_key as integer,",
-						"          date as date 'yyyy-MM-dd',",
-						"          year as integer,",
-						"          month as integer,",
-						"          day as integer,",
-						"          day_name as string,",
-						"          day_of_year as integer,",
-						"          week_of_month as integer,",
-						"          week_of_year as integer,",
-						"          month_name as string,",
-						"          year_month as string,",
-						"          year_week as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> DimDate",
-						"source(output(",
-						"          country as string,",
-						"          country_code_2_digit as string,",
-						"          country_code_3_digit as string,",
-						"          continent as string,",
-						"          population as string",
-						"     ),",
-						"     allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     ignoreNoFilesFound: false) ~> CountryCode",
-						"DimDate aggregate(groupBy(year,",
-						"          week_of_year),",
-						"     start_date = min(date),",
-						"          end_date = max(date)) ~> AggToGenStartAndEndDateOfWeek",
-						"AggToGenStartAndEndDateOfWeek derive(year_week = concat(toString(year), '-W', toString(week_of_year, '00'))) ~> NewYearWeekCol",
-						"SplitDailyFromWeekly@Daily pivot(groupBy(country,",
-						"          country_code_2_digit,",
-						"          country_code_3_digit,",
-						"          population,",
-						"          reported_date,",
-						"          source),",
-						"     pivotBy(indicator, ['Daily ICU occupancy', 'Daily hospital occupancy']),",
-						"     count = first(toInteger(value), true()),",
-						"     columnNaming: '$V_$N',",
-						"     lateral: true) ~> PivotDailyIndicatior",
-						"PivotDailyIndicatior select(mapColumn(",
-						"          country,",
-						"          country_code_2_digit,",
-						"          country_code_3_digit,",
-						"          population,",
-						"          reported_date,",
-						"          hospital_occupancy_count = {Daily hospital occupancy_count},",
-						"          icu_occupancy_count = {Daily ICU occupancy_count},",
-						"          source",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> SelectAndRenameColumnsForDailyData",
-						"select1 split(startsWith(indicator, 'Daily'),",
-						"     disjoint: false) ~> SplitDailyFromWeekly@(Daily, Weekly)",
-						"HospitalAdmissions, CountryCode join(HospitalAdmissions@country == CountryCode@country,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> LeftJoinCountryCode",
-						"LeftJoinCountryCode select(mapColumn(",
-						"          country = HospitalAdmissions@country,",
-						"          country_code_2_digit,",
-						"          country_code_3_digit,",
-						"          population,",
-						"          reported_date = date,",
-						"          reported_year_week = year_week,",
-						"          indicator,",
-						"          value,",
-						"          source",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> select1",
-						"SplitDailyFromWeekly@Weekly pivot(groupBy(country,",
-						"          country_code_2_digit,",
-						"          country_code_3_digit,",
-						"          population,",
-						"          reported_year_week,",
-						"          source),",
-						"     pivotBy(indicator, ['Weekly new hospital admissions per 100k', 'Weekly new ICU admissions per 100k']),",
-						"     count = sum(toDouble(value)),",
-						"     columnNaming: '$V_$N',",
-						"     lateral: true) ~> PivotWeeklyIndicatior",
-						"join1 select(mapColumn(",
-						"          country,",
-						"          country_code_2_digit,",
-						"          country_code_3_digit,",
-						"          population,",
-						"          reported_year_week,",
-						"          reported_week_start_date = start_date,",
-						"          reported_week_end_date = end_date,",
-						"          new_hospital_occupacy_count = {Weekly new hospital admissions per 100k_count},",
-						"          new_icu_occupacy_count = {Weekly new ICU admissions per 100k_count},",
-						"          source",
-						"     ),",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> SelectAndRenameColumnsForWeeklyData",
-						"PivotWeeklyIndicatior, NewYearWeekCol join(reported_year_week == year_week,",
-						"     joinType:'left',",
-						"     matchType:'exact',",
-						"     ignoreSpaces: false,",
-						"     broadcast: 'auto')~> join1",
-						"SelectAndRenameColumnsForWeeklyData sort(desc(reported_year_week, true),",
-						"     asc(country, true)) ~> SortWeeklyByYearWeekThenCountryName",
-						"SelectAndRenameColumnsForDailyData sort(desc(reported_date, true),",
-						"     asc(country, true)) ~> SortWeeklyByDateThenCountryName",
-						"SortWeeklyByDateThenCountryName sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'parquet',",
-						"     umask: 0022,",
-						"     preCommands: [],",
-						"     postCommands: [],",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> SinkToDailyHospitalAdmissionsData",
-						"SortWeeklyByYearWeekThenCountryName sink(allowSchemaDrift: true,",
-						"     validateSchema: false,",
-						"     format: 'parquet',",
-						"     umask: 0022,",
-						"     preCommands: [],",
-						"     postCommands: [],",
-						"     skipDuplicateMapInputs: true,",
-						"     skipDuplicateMapOutputs: true) ~> SinkToWeeklyHospitalAdmissionsData"
-					]
-				}
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/datasets/ds_bronze_hospital_admissions_csv')]",
-				"[concat(variables('factoryId'), '/datasets/ds_bronze_dim_date_csv')]",
-				"[concat(variables('factoryId'), '/datasets/ds_bronze_country_code_loopup')]",
-				"[concat(variables('factoryId'), '/datasets/ds_silver_daily_hospital_admissions_parquet')]",
-				"[concat(variables('factoryId'), '/linkedServices/Covid19 Azure Data Lake')]",
-				"[concat(variables('factoryId'), '/datasets/ds_silver_weekly_hospital_admissions_parquet')]"
-			]
-		},
-		{
-			"name": "[concat(parameters('factoryName'), '/pl_porcess_ecdc_data')]",
-			"type": "Microsoft.DataFactory/factories/pipelines",
-			"apiVersion": "2018-06-01",
-			"properties": {
-				"activities": [
-					{
-						"name": "Transform Cases Deaths",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "df_cases_deaths_transformation",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"CasesDeaths": {},
-									"ContryCodeLookup": {},
-									"CasesAndDeathSink": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "Transform Hospital Admissions",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "df_hostpital_admissions_transform",
-								"type": "DataFlowReference",
-								"parameters": {},
-								"datasetParameters": {
-									"HospitalAdmissions": {},
-									"DimDate": {},
-									"CountryCode": {},
-									"SinkToDailyHospitalAdmissionsData": {},
-									"SinkToWeeklyHospitalAdmissionsData": {}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('factoryId'), '/dataflows/df_cases_deaths_transformation')]",
-				"[concat(variables('factoryId'), '/dataflows/df_hostpital_admissions_transform')]"
+				"[concat(variables('factoryId'), '/linkedServices/Covid19SqlsrvUdemyCourse')]"
 			]
 		}
 	]
