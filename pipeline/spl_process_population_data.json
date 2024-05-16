@@ -1,5 +1,5 @@
 {
-	"name": "spl_process_testing_and_population_data",
+	"name": "spl_process_population_data",
 	"properties": {
 		"activities": [
 			{
@@ -290,6 +290,7 @@
 				}
 			}
 		],
+		"concurrency": 1,
 		"parameters": {
 			"DATABRICKS_HOST": {
 				"type": "string",
