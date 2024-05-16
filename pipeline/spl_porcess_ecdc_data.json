@@ -17,7 +17,13 @@
 				"typeProperties": {
 					"dataflow": {
 						"referenceName": "df_cases_deaths_transformation",
-						"type": "DataFlowReference"
+						"type": "DataFlowReference",
+						"parameters": {
+							"CURR_DATE": {
+								"value": "@variables('current_time')",
+								"type": "Expression"
+							}
+						}
 					},
 					"compute": {
 						"coreCount": 8,
@@ -41,7 +47,13 @@
 				"typeProperties": {
 					"dataflow": {
 						"referenceName": "df_hostpital_admissions_transform",
-						"type": "DataFlowReference"
+						"type": "DataFlowReference",
+						"parameters": {
+							"CURR_DATE": {
+								"value": "@variables('current_time')",
+								"type": "Expression"
+							}
+						}
 					},
 					"compute": {
 						"coreCount": 8,
@@ -51,6 +63,11 @@
 				}
 			}
 		],
+		"variables": {
+			"current_time": {
+				"type": "String"
+			}
+		},
 		"folder": {
 			"name": "pl_transform_data"
 		},
