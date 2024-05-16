@@ -3,7 +3,7 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Transform Cases Deaths",
+				"name": "Transform Cases and Deaths",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {

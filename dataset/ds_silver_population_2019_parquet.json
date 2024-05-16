@@ -1,0 +1,51 @@
+{
+	"name": "ds_silver_population_2019_parquet",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Covid19 Azure Data Lake",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "population",
+				"fileSystem": "silver"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": [
+			{
+				"name": "country_code",
+				"type": "UTF8"
+			},
+			{
+				"name": "age_group",
+				"type": "UTF8"
+			},
+			{
+				"name": "min_age",
+				"type": "UTF8"
+			},
+			{
+				"name": "max_age",
+				"type": "UTF8"
+			},
+			{
+				"name": "percentage_2019",
+				"type": "DECIMAL",
+				"precision": 4,
+				"scale": 2
+			},
+			{
+				"name": "country",
+				"type": "UTF8"
+			},
+			{
+				"name": "population",
+				"type": "INT32"
+			}
+		]
+	}
+}

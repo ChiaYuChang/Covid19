@@ -6,7 +6,7 @@
 		"pipelines": [
 			{
 				"pipelineReference": {
-					"referenceName": "pl_ingest_population_data",
+					"referenceName": "spl_ingest_population_data",
 					"type": "PipelineReference"
 				},
 				"parameters": {

@@ -82,6 +82,9 @@
 				},
 				{
 					"name": "SortWeeklyByDateThenCountryName"
+				},
+				{
+					"name": "AddTimestamp"
 				}
 			],
 			"scriptLines": [
@@ -134,7 +137,8 @@
 				"          country_code_3_digit,",
 				"          population,",
 				"          reported_date,",
-				"          source),",
+				"          source,",
+				"          transformation_date),",
 				"     pivotBy(indicator, ['Daily ICU occupancy', 'Daily hospital occupancy']),",
 				"     count = first(toInteger(value), true()),",
 				"     columnNaming: '$V_$N',",
@@ -147,11 +151,12 @@
 				"          reported_date,",
 				"          hospital_occupancy_count = {Daily hospital occupancy_count},",
 				"          icu_occupancy_count = {Daily ICU occupancy_count},",
-				"          source",
+				"          source,",
+				"          transformation_date",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> SelectAndRenameColumnsForDailyData",
-				"select1 split(startsWith(indicator, 'Daily'),",
+				"AddTimestamp split(startsWith(indicator, 'Daily'),",
 				"     disjoint: false) ~> SplitDailyFromWeekly@(Daily, Weekly)",
 				"HospitalAdmissions, CountryCode join(HospitalAdmissions@country == CountryCode@country,",
 				"     joinType:'left',",
@@ -176,7 +181,8 @@
 				"          country_code_3_digit,",
 				"          population,",
 				"          reported_year_week,",
-				"          source),",
+				"          source,",
+				"          transformation_date),",
 				"     pivotBy(indicator, ['Weekly new hospital admissions per 100k', 'Weekly new ICU admissions per 100k']),",
 				"     count = sum(toDouble(value)),",
 				"     columnNaming: '$V_$N',",
@@ -191,7 +197,8 @@
 				"          reported_week_end_date = end_date,",
 				"          new_hospital_occupacy_count = {Weekly new hospital admissions per 100k_count},",
 				"          new_icu_occupacy_count = {Weekly new ICU admissions per 100k_count},",
-				"          source",
+				"          source,",
+				"          transformation_date",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> SelectAndRenameColumnsForWeeklyData",
@@ -204,6 +211,7 @@
 				"     asc(country, true)) ~> SortWeeklyByYearWeekThenCountryName",
 				"SelectAndRenameColumnsForDailyData sort(desc(reported_date, true),",
 				"     asc(country, true)) ~> SortWeeklyByDateThenCountryName",
+				"select1 derive(transformation_date = currentTimestamp()) ~> AddTimestamp",
 				"SortWeeklyByDateThenCountryName sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'parquet',",

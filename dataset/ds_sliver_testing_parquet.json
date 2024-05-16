@@ -1,0 +1,69 @@
+{
+	"name": "ds_sliver_testing_parquet",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "Covid19 Azure Data Lake",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "ecdc/testing",
+				"fileSystem": "silver"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": [
+			{
+				"name": "country",
+				"type": "UTF8"
+			},
+			{
+				"name": "country_code_2_digit",
+				"type": "UTF8"
+			},
+			{
+				"name": "country_code_3_digit",
+				"type": "UTF8"
+			},
+			{
+				"name": "year_week",
+				"type": "UTF8"
+			},
+			{
+				"name": "week_start_date",
+				"type": "DATE"
+			},
+			{
+				"name": "week_end_date",
+				"type": "DATE"
+			},
+			{
+				"name": "new_cases",
+				"type": "INT32"
+			},
+			{
+				"name": "tests_done",
+				"type": "INT32"
+			},
+			{
+				"name": "population",
+				"type": "INT32"
+			},
+			{
+				"name": "testing_rate",
+				"type": "DOUBLE"
+			},
+			{
+				"name": "positivity_rate",
+				"type": "DOUBLE"
+			},
+			{
+				"name": "testing_data_source",
+				"type": "UTF8"
+			}
+		]
+	}
+}
