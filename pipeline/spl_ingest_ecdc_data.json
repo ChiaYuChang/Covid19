@@ -1,5 +1,5 @@
 {
-	"name": "pl_ingest_ecdc_data",
+	"name": "spl_ingest_ecdc_data",
 	"properties": {
 		"activities": [
 			{
@@ -133,6 +133,9 @@
 			}
 		],
 		"concurrency": 1,
+		"folder": {
+			"name": "pl_ingest_data"
+		},
 		"annotations": []
 	}
 }

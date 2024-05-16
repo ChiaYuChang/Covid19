@@ -1,5 +1,5 @@
 {
-	"name": "pl_porcess_ecdc_data",
+	"name": "spl_porcess_ecdc_data",
 	"properties": {
 		"activities": [
 			{
@@ -51,6 +51,9 @@
 				}
 			}
 		],
+		"folder": {
+			"name": "pl_transform_data"
+		},
 		"annotations": []
 	}
 }

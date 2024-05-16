@@ -1,5 +1,5 @@
 {
-	"name": "pl_ingest_population_data",
+	"name": "spl_ingest_population_data",
 	"properties": {
 		"activities": [
 			{
@@ -197,6 +197,9 @@
 				"type": "int",
 				"defaultValue": 13
 			}
+		},
+		"folder": {
+			"name": "pl_ingest_data"
 		},
 		"annotations": []
 	}
