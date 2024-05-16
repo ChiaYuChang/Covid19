@@ -1,9 +1,12 @@
 {
-	"name": "ds_sliver_testing_parquet",
+	"name": "ds_silver_testing_parquet",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "Covid19 Azure Data Lake",
 			"type": "LinkedServiceReference"
+		},
+		"folder": {
+			"name": "2 silver"
 		},
 		"annotations": [],
 		"type": "Parquet",

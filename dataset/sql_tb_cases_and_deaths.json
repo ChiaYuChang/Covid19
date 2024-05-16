@@ -5,6 +5,9 @@
 			"referenceName": "Covid19SqlsrvUdemyCourse",
 			"type": "LinkedServiceReference"
 		},
+		"folder": {
+			"name": "3 gold"
+		},
 		"annotations": [],
 		"type": "AzureSqlTable",
 		"schema": [
